@@ -154,15 +154,15 @@
 \section{Summary}
 % ============================================================================
 
-SMT solvers are widely used to decide the satisfiability of logical formulas modulo theories. When a solver produces a proof, its result can be independently validated through a proof certificate. One approach to validate such certificates is to reconstruct and check them inside a proof assistant.
-Some existing approaches rely on the $\lambda\Pi$ logical framework as a unifying basis for proof checking.
-However, dispatching problems to SMT solvers and reconstructing proofs still require proof-assistant specific encodings to the SMT-LIB format.
+SMT solvers are widely used to decide the satisfiability of logical formulas modulo theories (e.g. arithmetic, bit vectors). When a solver produces a proof, its result can be independently validated through a proof certificate. One approach to validate such certificates is to reconstruct and check them inside a proof assistant.
+Some existing approaches rely on the $\lambda\Pi$ logical framework as a unifying basis for proof checking \cite{coltellacci24smt}.
+However, dispatching problems to SMT solvers and reconstructing proofs still require proof-assistant specific encodings to the SMT-LIB format \cite{smtlib}.
 A central challenge lies in encoding the proof calculi of certificates produced by SMT solvers, which leads to duplicated effort across systems and significantly limits interoperability among SMT solvers, their proof formats, and target proof assistants.
 
 This PhD proposal focuses on the problem of dispatching SMT problems and reconstructing proof obligations in multiple proof assistants using a shared intermediate framework.
-We propose $\lambda\Pi$-SMT, a collection of metatheorems and rewrite rules in $\lambda\Pi$ intended to factor out common proof-theoretic components of SMT reasoning.
+We propose $\lambda\Pi$-SMT, a collection of meta-theorems and rewrite rules in $\lambda\Pi$ intended to factor out common proof-theoretic components of SMT reasoning.
 The goal is to enable proof assistants with an existing $\lambda\Pi$ interface to reuse a common pipeline for SMT problem dispatching and proof reconstruction, reducing the need for repeated assistant-specific encodings.
-In addition, we aim to extend existing work on translating Alethe proofs to $\lambda\Pi$ by supporting further SMT theories, such as bit-vectors and strings. 
+In addition, we aim to extend existing work on translating Alethe proofs to $\lambda\Pi$ by supporting further SMT theories, such as bit vectors and strings. 
 
 This extension focuses on incorporating additional, well-established SMT theories into the $\lambda\Pi$-SMT framework. 
 While such theories are central to modern SMT solvers, they are still not uniformly supported across proof assistants with support for SMT proof discard, in the sense that their internal encodings are not well mapped to the SMT theories.
@@ -209,8 +209,8 @@ This is one of the rules used (equiv\_simplify \cite{alethe2020}) in Figure \ref
 
 Encoding semantics in a logical framework such as the $\lambda\Pi$-modulo rewriting calculus enables the representation of different proof systems via rewriting rules \cite{alessio}.
 This is particularly useful because shallow embeddings of proof systems typically guarantee better integration. This means that we use the framework's logic to directly represent the semantics of the encoded logic, unlike deep embeddings that encode the proof system rules as algebraic data types and logical relations \cite{benzmueller2025faithful}.
-With shallow embeddings in $\lambda\Pi$-modulo rewriting, we enjoy substitution, rewriting, and other meta-theoretical properties of the framework for free. For example, Alessio et al. \cite{alessio} translate Alethe proofs to the Lambda-Pi calculus modulo rewriting, a logical framework that extends the $\lambda\Pi$-calculus with rewrite rules. These proofs can be independently checked by $\lambda\Pi$-modulo rewriting or Dedukti \cite{Assaf_2015}.
-Moreover, $\lambda\Pi$-modulo rewriting proofs can be translated to higher-order proofs in proof assistants such as Rocq or Lean. For instance, hol2dk translates HOL-Light proofs to Dedukti, and potentially to Rocq \cite{LPAR2024:Translating_HOL_Light_proofs}.
+With shallow embeddings in $\lambda\Pi$-modulo rewriting, we enjoy substitution, rewriting, and other meta-theoretical properties of the framework for free. For example, Alessio et al. \cite{alessio} translate Alethe proofs to the Lambda-Pi calculus modulo rewriting, a logical framework that extends the $\lambda\Pi$-calculus with rewrite rules. These proofs can be independently checked by Lambdapi \cite{hondet20fscd}.
+Moreover, Lambdapi proofs can be translated to other proof assistants such as Rocq and Lean \cite{thire18lfmtp,LPAR2024:Translating_HOL_Light_proofs}.
 
 But still, a gap remains in connecting SMT solvers to proof assistants.
 While we are able to reconstruct Alethe certificates in $\lambda \Pi$-modulo, we need to establish a specific encoding for each proof assistant to dispatch a problem for an SMT solver and reconstruct the proof.
@@ -273,17 +273,17 @@ rule $x + pos zero ↪ $x with reconstruction SMT("int-add-zero-right");
 % ============================================================================
 
 A good implementation of $F$ converts the encoding from $A$ to the closest SMT-supported theory. This requires a set of lemmas in $A$ corresponding to those used by the SMT solver's theory engine.
-For instance, when reconstructing a proof, a database of metatheorems matching the theory engine guides the reconstruction \cite{Bhme2012ProvingTO}.
+For instance, when reconstructing a proof, a database of meta-theorems matching the theory engine guides the reconstruction \cite{Bhme2012ProvingTO}.
 
-We propose \textit{$\lambda\Pi$-modulo rewriting-SMT}, a database of metatheorems in $\lambda\Pi$-modulo rewriting sufficient for dispatching SMT problems across different proof assistants.
-Since $\lambda\Pi$-modulo rewriting has a small core, we aim to preserve this property when designing the metatheorems. For example, in hol2dk \cite{Blanqui2024HOLLightToCoq},
+We propose \textit{$\lambda\Pi$-modulo rewriting-SMT}, a database of meta-theorems in $\lambda\Pi$-modulo rewriting sufficient for dispatching SMT problems across different proof assistants.
+Since $\lambda\Pi$-modulo rewriting has a small core, we aim to preserve this property when designing the meta-theorems. For example, in hol2dk \cite{Blanqui2024HOLLightToCoq},
 inductive types for first-order terms in HOL-Light (such as product types and natural numbers) are translated between HOL and Rocq by proving that their shallow embeddings are equivalent.
 
 To support different proof assistants, the differences in their type systems must be considered.
 The rewrite rules and encoding should be designed for translation across different settings of universe levels, inductive principles, and similar features.
 Since SMT theories are typically first-order, this considerably simplifies the task of the user who wants to map their definitions into $\lambda\Pi$-modulo rewriting-SMT.
-In fact, the user only needs to use the metatheorems corresponding to the SMT theories or map their definitions to existing ones in $\lambda\Pi$-modulo rewriting-SMT.
-This can be done using different translation tools already available, such as hol2dk \cite{Blanqui2024HOLLightToCoq}, k Framework to Dedukti \cite{ledein:hal-03895834}, and others as described in the translation pipeline in Figure \ref{fig:translation-pipeline}.
+In fact, the user only needs to use the meta-theorems corresponding to the SMT theories or map their definitions to existing ones in $\lambda\Pi$-modulo rewriting-SMT.
+This can be done using different translation tools already available, such as hol2dk \cite{Blanqui2024HOLLightToCoq}, the K framework to Dedukti \cite{ledein:hal-03895834}, and others as described in the translation pipeline in Figure \ref{fig:translation-pipeline}.
 
 \begin{figure}[!ht]
     \centering
@@ -302,7 +302,7 @@ This proposal builds on existing work on Alethe proof reconstruction in $\lambda
 
 \begin{itemize}
     \item \textbf{Extend theory support:} Extend Alessio's work to handle bit-vector and array theories by translating the cvc5 calculus for bit-vectors and strings into $\lambda\Pi$-modulo rewriting.
-    \item \textbf{Design the metatheorem framework:} Design a framework mapping $\lambda\Pi$-modulo rewriting metatheorems to SMT theories, supporting problem dispatching and proof reconstruction in different proof assistants from Alethe certificates.
+    \item \textbf{Design the meta-theorem framework:} Design a framework mapping $\lambda\Pi$-modulo rewriting meta-theorems to SMT theories, supporting problem dispatching and proof reconstruction in different proof assistants from Alethe certificates.
     \item \textbf{Proof of concept:} Develop a proof of concept using Lean as the target proof assistant.
 \end{itemize}
 
