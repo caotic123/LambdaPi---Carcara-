@@ -23,6 +23,7 @@
 \renewcommand{\headrulewidth}{0pt}
 \lhead{}\chead{}\rhead{}
 \lfoot{}\cfoot{\thepage}\rfoot{}
+\renewcommand\hide[1]{}
 
 \usepackage{url}
 
@@ -156,8 +157,8 @@
 
 SMT solvers are widely used to decide the satisfiability of logical formulas modulo theories (e.g. arithmetic, bit vectors). When a solver produces a proof, its result can be independently validated through a proof certificate. One approach to validate such certificates is to reconstruct and check them inside a proof assistant.
 Some existing approaches rely on the $\lambda\Pi$ logical framework as a unifying basis for proof checking \cite{coltellacci24smt}.
-However, dispatching problems to SMT solvers and reconstructing proofs still require proof-assistant specific encodings to the SMT-LIB format \cite{smtlib}.
-A central challenge lies in encoding the proof calculi of certificates produced by SMT solvers, which leads to duplicated effort across systems and significantly limits interoperability among SMT solvers, their proof formats, and target proof assistants.
+However, dispatching problems to SMT solvers and reconstructing proofs still requires proof-assistant specific encodings to the SMT-LIB format \cite{smtlib}.
+A central challenge lies in encoding the proof calculi of certificates produced by SMT solvers, which leads to duplicated efforts across systems and significantly limits interoperability among SMT solvers, their proof formats, and target proof assistants.
 
 This PhD proposal focuses on the problem of dispatching SMT problems and reconstructing proof obligations in multiple proof assistants using a shared intermediate framework.
 We propose $\lambda\Pi$-SMT, a collection of meta-theorems and rewrite rules in $\lambda\Pi$ intended to factor out common proof-theoretic components of SMT reasoning.
@@ -174,9 +175,9 @@ By providing a common $\lambda\Pi$-based interface for these theories, our tool 
 
 SMT solvers are powerful tools for checking satisfiability of logical formulas modulo theories.
 However, given the complexity of their algorithms and optimizations, their results can be questioned in the absence of proofs of correctness.
-One way to increase confidence in their results is to mechanically verify their entire codebase, but this is often impractical: codebases are large, decision procedures and heuristics are complex to formalize, and maintaining the formalization as the solver evolves incurs significant cost.
+One way to increase confidence in their results is to mechanically verify their entire codebase, but this is often impractical: codebases are large, decision procedures and heuristics are complex to formalize, and maintaining the formalization as the solver evolves incurs significant costs.
 
-A more practical approach is proof logging [2], where a reasoner emits a proof artifact justifying its output, enabling independent verification.
+A more practical approach is proof logging where a reasoner emits a proof artifact justifying its output, enabling independent verification \cite{prooflogging}.
 Successful examples of proof logging include the SMT solvers veriT \cite{verit2013} and cvc5 \cite{cvc5}.
 Both support the Alethe proof format \cite{alethe2020}, which is designed to justify unsatisfiability results.
 Alethe has an SMT-LIB-like \cite{smtlib} syntax (Figure~\ref{fig:alethe-example}) and natively supports the most common SMT theories.
@@ -207,15 +208,15 @@ Examples of such approach include proving the step rules of Alethe in Dedukti \c
 For example, one may want to prove that a certain rewriting step is correct: given a decidable equality and a Boolean expression $a$, can we derive $(= (= a\:true)\:a)$?
 This is one of the rules used (equiv\_simplify \cite{alethe2020}) in Figure \ref{fig:alethe-example}, proved correct by Alessio et al. \cite{alessio} in $\lambda\Pi$-modulo rewriting.
 
-Encoding semantics in a logical framework such as the $\lambda\Pi$-modulo rewriting calculus enables the representation of different proof systems via rewriting rules \cite{alessio}.
+Encoding semantics in a logical framework such as the $\lambda\Pi$-calculus modulo rewriting enables the representation of different proof systems via rewriting rules \cite{alessio}.
 This is particularly useful because shallow embeddings of proof systems typically guarantee better integration. This means that we use the framework's logic to directly represent the semantics of the encoded logic, unlike deep embeddings that encode the proof system rules as algebraic data types and logical relations \cite{benzmueller2025faithful}.
-With shallow embeddings in $\lambda\Pi$-modulo rewriting, we enjoy substitution, rewriting, and other meta-theoretical properties of the framework for free. For example, Alessio et al. \cite{alessio} translate Alethe proofs to the Lambda-Pi calculus modulo rewriting, a logical framework that extends the $\lambda\Pi$-calculus with rewrite rules. These proofs can be independently checked by Lambdapi \cite{hondet20fscd}.
+With shallow embeddings in $\lambda\Pi$-modulo rewriting, we enjoy substitution, rewriting, and other meta-theoretical properties of the framework for free. For example, Alessio et al. \cite{alessio} translate Alethe proofs to Lambdapi \cite{hondet20fscd}, a logical framework that extends the $\lambda\Pi$-calculus with rewrite rules, and check their correctness with Lambdapi.
 Moreover, Lambdapi proofs can be translated to other proof assistants such as Rocq and Lean \cite{thire18lfmtp,LPAR2024:Translating_HOL_Light_proofs}.
 
-But still, a gap remains in connecting SMT solvers to proof assistants.
-While we are able to reconstruct Alethe certificates in $\lambda \Pi$-modulo, we need to establish a specific encoding for each proof assistant to dispatch a problem for an SMT solver and reconstruct the proof.
+But still a gap remains in connecting SMT solvers to proof assistants.
+While we are able to reconstruct Alethe certificates in $\lambda\Pi$-modulo, we need to establish a specific encoding for each proof assistant to dispatch a problem for an SMT solver and reconstruct the proof.
 The typical pipeline converts the SMT problem to first-order logic using an encoding specific to each proof assistant, as done in Isabelle \cite{sleddehammer} and in Lean \cite{leansmt}.
-This results in duplicated effort to encode SMT theories for each proof assistant, the main challenge here is to reconstruct the proof in the original proof assistant.
+This results in duplicated efforts to encode SMT theories for each proof assistant, the main challenge being here to reconstruct the proof in the original proof assistant.
 Once we use a certain kind of encoding we still need to get the information back and preserve their meta-theoretical properties to the target proof system, so it is usually a more laborious task that may require a set of lemmas and strategies to match the same reasoning of the proof system used in the certificate \cite{leansmt}.
 
 Consider an encoding of a higher-order formula $\phi$ in a proof assistant $A$, and let $F: \phi \rightarrow \phi'$ denote the mapping from a proof in higher-order logic to an SMT first-order logic proof object.
@@ -223,6 +224,34 @@ While $\phi'$ may be incomplete in the sense that some higher-order properties a
 Now consider a mapping from $A$ to $\lambda\Pi$-modulo rewriting, denoted $L_A: \phi \rightarrow \phi_{LP}$. This mapping is faithful and complete, establishing a clear isomorphism, so it does translate any term, program or proof object. The current strategy sends $\phi'$ to the SMT solver, generates an Alethe $\pi'$ certificate translated to $\lambda\Pi$-modulo rewriting, and reconstructs the proof in $A$ directly from $\pi'$.
 So we can still check the validity of $\phi'$ in $\lambda\Pi$-modulo rewriting, but we cannot universally reconstruct the proof in $A$ if we do not have a specific interface for $A$ to the SMT proof format.
 We propose a different approach: translate $\phi_{LP}$ to SMT first-order logic problem, convert back to $\lambda\Pi$-modulo rewriting and then using the inverse mapping to obtain the proof object again by $L_A^{-1}$.
+
+\hide{
+Indeed, consider a formula $\phi_A$ in a proof assistant $A$ and let
+$\phi'_{SMT}$ be a translation of $\phi_A$ in the SMT logic. Because
+proof assistant logics are usually more expressive than the SMT logics
+(higher-order logic or dependent type theory vs first-order logic),
+this translation is generally not complete in the sense that not all
+formulas provable in $A$ are provable by a SMT solver. On the other
+hand, translations are designed so that one can obtain a proof of
+$\phi_A$ from a proof of $\phi'_{SMT}$.
+%
+Let $L_A$ be a faithful and complete mapping of $A$ to Lambdapi.  The
+current strategy sends $\phi'_{SMT}$ to a SMT solver, gets back an
+Alethe proof $\pi'_{Alethe}$, translates it to a Lambdapi proof
+$\pi'_{LP}$ of $\phi'_{SMT}$, and then to a proof of $\phi'_{SMT}$ in
+$A$ by applying $L_A^{-1}$. We can check the validity of $\pi'_{LP}$
+in Lambdapi but we cannot universally reconstruct a proof in $A$ if we
+do not have a specific interface in $A$ to the SMT proof format.
+%
+We propose a different approach: translate $\phi_A$ to $\phi_{LP}$ in
+Lambdapi, transform the formula $\phi_{LP}$ that is the Lambdapi
+theory for $A$ to a formula $\phi'_{LP}$ that is in the Lambdapi
+theory of SMT, and prove in Lambdapi that $\phi_{LP}$ is provable
+whenever $\phi'_{LP}$ so is. Then, send $\phi'_{LP}$ to a SMT solver,
+get back an Alethe proof $\pi'_{Alethe}$, translate it to a Lambdapi
+proof $\pi'_{LP}$, get in Lambdapi a proof $\pi_{LP}$ of $\phi_{LP}$,
+and translate it back to a proof of $\phi_A$ in $A$ using $L_A^{-1}$.
+}
 
 We plan to map terms to SMT formulas that faithfully encode only the fragment of the proof system encoded in $\lambda\Pi$.
 To this end, we must establish a collection of facts that reconstruct the reasoning performed by SMT theories.
